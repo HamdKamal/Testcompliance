@@ -1,0 +1,175 @@
+public class TeamShortageRequest
+{
+    public long Id { get; set; }
+
+    public long ComplianceDetailsId { get; set; }        // 🔗 Links to ComplianceDetails table
+    public ComplianceDetail ComplianceDetails { get; set; }
+
+    public DateTime VisitDate { get; set; }
+
+    public long LicensedEntityId { get; set; }
+    public string ShortageReason { get; set; }
+
+    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+    public string CreatedBy { get; set; }
+}
+
+public DbSet<TeamShortageRequest> TeamShortageRequests { get; set; }
+
+protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
+
+    modelBuilder.Entity<TeamShortageRequest>()
+        .HasOne(t => t.ComplianceDetails)
+        .WithMany() // If ComplianceDetails can have many shortage requests
+        .HasForeignKey(t => t.ComplianceDetailsId);
+}
+
+using ComplianceRequestsApp.Domain;
+
+public interface ITeamShortageRequestRepository
+{
+    Task<TeamShortageRequest> AddAsync(TeamShortageRequest request);
+    Task<List<TeamShortageRequest>> GetByComplianceDetailsIdsAsync(List<long> complianceDetailsIds);
+}
+
+using ComplianceRequestsApp.Domain;
+using Microsoft.EntityFrameworkCore;
+
+public class TeamShortageRequestRepository : ITeamShortageRequestRepository
+{
+    private readonly ApplicationDbContext _context;
+
+    public TeamShortageRequestRepository(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<TeamShortageRequest> AddAsync(TeamShortageRequest request)
+    {
+        _context.TeamShortageRequests.Add(request);
+        await _context.SaveChangesAsync();
+        return request;
+    }
+
+    public async Task<List<TeamShortageRequest>> GetByComplianceDetailsIdsAsync(List<long> complianceDetailsIds)
+    {
+        return await _context.TeamShortageRequests
+            .Where(t => complianceDetailsIds.Contains(t.ComplianceDetailsId))
+            .ToListAsync();
+    }
+}
+
+public class TeamShortageRequestDto
+{
+    public long Id { get; set; }
+    public long ComplianceDetailsId { get; set; }
+    public DateTime VisitDate { get; set; }
+    public long LicensedEntityId { get; set; }
+    public string LicensedEntityName { get; set; }
+    public string ShortageReason { get; set; }
+    public DateTime CreatedOn { get; set; }
+    public string CreatedBy { get; set; }
+}
+
+public interface ITeamShortageRequestService
+{
+    Task<TeamShortageRequestDto> SubmitAsync(TeamShortageRequestDto dto);
+    Task<List<TeamShortageRequestDto>> GetByComplianceDetailsIdsAsync(List<long> complianceDetailsIds);
+}
+
+
+using ComplianceRequestsApp.Domain;
+
+public class TeamShortageRequestService : ITeamShortageRequestService
+{
+    private readonly ITeamShortageRequestRepository _repository;
+    private readonly ICurrentUserService _currentUserService;
+
+    public TeamShortageRequestService(
+        ITeamShortageRequestRepository repository,
+        ICurrentUserService currentUserService)
+    {
+        _repository = repository;
+        _currentUserService = currentUserService;
+    }
+
+    public async Task<TeamShortageRequestDto> SubmitAsync(TeamShortageRequestDto dto)
+    {
+        var entity = new TeamShortageRequest
+        {
+            ComplianceDetailsId = dto.ComplianceDetailsId,
+            VisitDate = dto.VisitDate,
+            LicensedEntityId = dto.LicensedEntityId,
+            ShortageReason = dto.ShortageReason,
+            CreatedBy = _currentUserService.User.UserName
+        };
+
+        var result = await _repository.AddAsync(entity);
+
+        return new TeamShortageRequestDto
+        {
+            Id = result.Id,
+            ComplianceDetailsId = result.ComplianceDetailsId,
+            VisitDate = result.VisitDate,
+            LicensedEntityId = result.LicensedEntityId,
+            ShortageReason = result.ShortageReason,
+            CreatedOn = result.CreatedOn,
+            CreatedBy = result.CreatedBy
+        };
+    }
+
+    public async Task<List<TeamShortageRequestDto>> GetByComplianceDetailsIdsAsync(List<long> complianceDetailsIds)
+    {
+        var items = await _repository.GetByComplianceDetailsIdsAsync(complianceDetailsIds);
+
+        return items.Select(sr => new TeamShortageRequestDto
+        {
+            Id = sr.Id,
+            ComplianceDetailsId = sr.ComplianceDetailsId,
+            VisitDate = sr.VisitDate,
+            LicensedEntityId = sr.LicensedEntityId,
+            ShortageReason = sr.ShortageReason,
+            CreatedOn = sr.CreatedOn,
+            CreatedBy = sr.CreatedBy
+        }).ToList();
+    }
+}
+
+using Microsoft.AspNetCore.Mvc;
+
+[ApiController]
+[Route("api/[controller]")]
+public class TeamShortageController : ControllerBase
+{
+    private readonly ITeamShortageRequestService _service;
+
+    public TeamShortageController(ITeamShortageRequestService service)
+    {
+        _service = service;
+    }
+
+    /// <summary>
+    /// Submit a new team shortage request
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> Submit([FromBody] TeamShortageRequestDto dto)
+    {
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        var result = await _service.SubmitAsync(dto);
+        return Ok(new { message = "تم إرسال طلب معالجة نقص الفريق بنجاح", data = result });
+    }
+}
+
+{
+  "ComplianceDetailsId": 1,
+  "VisitDate": "2025-07-22T00:00:00",
+  "LicensedEntityId": 2,
+  "ShortageReason": "عدد المفتشين غير كافٍ"
+}
+
+
+
