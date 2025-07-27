@@ -182,3 +182,45 @@ background: #07DDB9;  font-weight: 700;">
     </center>
 </body>
 </html>
+public class TeamShortageNotificationService
+{
+    private readonly IEmailService _emailService;
+    private readonly IRazorViewToStringRenderer _razorRenderer;
+    private readonly IConfiguration _config;
+
+    public TeamShortageNotificationService(IEmailService emailService,
+                                           IRazorViewToStringRenderer razorRenderer,
+                                           IConfiguration config)
+    {
+        _emailService = emailService;
+        _razorRenderer = razorRenderer;
+        _config = config;
+    }
+
+    public async Task SendTeamShortageEmailAsync(TeamShortageModel shortage)
+    {
+        var model = new NotificationMessageModel
+        {
+            Subject = "تنبيه بنقص الفريق",
+            Body = $"سبب النقص: {shortage.ShortageReason}",
+            Content = new Dictionary<string, string>
+            {
+                { "EmployeeName", "مدير الإدارة" },
+                { "VisitNumber", shortage.ComplianceDetailsId.ToString() },
+                { "LicensedEntityName", shortage.LicensedEntityId.ToString() },
+                { "ActionUrl", $"https://yourapp.com/visits/{shortage.ComplianceDetailsId}" }
+            }
+        };
+
+        string htmlBody = await _razorRenderer.RenderViewToStringAsync("Emails/TeamShortageNotification", model);
+
+        await _emailService.SendEmailAsync(
+            _config["EmailSettings:ManagerEmail"],
+            model.Subject,
+            htmlBody
+        );
+    }
+}
+
+
+
