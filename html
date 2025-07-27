@@ -223,4 +223,10 @@ public class TeamShortageNotificationService
 }
 
 
-
+string smsMessage =
+    $"عزيزي: مدير الامتثال، " +
+    $"تم تسجيل نقص في الفريق. " +
+    $"رقم الزيارة: {shortage.ComplianceDetailsId}, " +
+    $"تاريخ الزيارة: {shortage.VisitDate:yyyy-MM-dd}, " +
+    $"اسم الجهة: {shortage.LicensedEntityName}, " +
+    $"سبب النقص: {shortage.ShortageReason}.";
