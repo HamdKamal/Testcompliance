@@ -1,1 +1,93 @@
+    public async Task<ResponseResult<ComplianceReportDto>> AddComplianceReport(ComplianceReportDto reportDto)
+    {
+
+        if (currentUserService.User.Role.Any(a => a.Contains(RoleEnum.ComplianceSpecialist)))
+        {
+            // Map DTO to Entity 
+            var _report = new ComplianceReport
+            {
+                Id = Guid.NewGuid(),
+                ReportTypeID = reportDto.ReportTypeID,
+                ReportNumber = reportDto.ReportNumber,
+                VisitTypeID = reportDto.VisitTypeID,
+                LicenseID = reportDto.LicenseID,
+                FacilityOrLine = reportDto.FacilityOrLine,
+                Activity = reportDto.Activity,
+                SiteName = reportDto.SiteName,
+                InspectionScope = reportDto.InspectionScope,
+                LocationID = reportDto.LocationID,
+                LicenseNumber = reportDto.LicenseNumber,
+                CommercialOperationDate = reportDto.CommercialOperationDate,
+                LicenseIssueDate = reportDto.LicenseIssueDate,
+                VisitDate = reportDto.VisitDate,
+                Recommendation = reportDto.Recommendation,
+                Notes = reportDto.Notes,
+                CreatedByID = currentUserService.User.UserId,
+                CreatedOn = DateTime.UtcNow,
+
+            };
+            await dbContext.ComplianceReports.AddAsync(_report);
+
+            // Add nested entities
+            if (reportDto?.Auditors != null)
+            {
+                foreach (var audit in reportDto.Auditors)
+                {
+                    await dbContext.Auditors.AddAsync(new Auditors
+                    {
+                        Name = audit.Name,
+                        ReportID = _report.Id
+                    });
+                }
+            }
+            if (reportDto?.Participants != null)
+            {
+                foreach (var participant in reportDto.Participants)
+                {
+                    await dbContext.LicenseParticipants.AddAsync(new LicenseParticipant
+                    {
+                        Name = participant.Name,
+                        Department = participant.Department,
+                        Position = participant.Position,
+                        Phone = participant.Phone,
+                        Email = participant.Email,
+                        ReportID = _report.Id
+                    });
+                }
+            }
+            if (reportDto?.PreviousRecommendations != null)
+            {
+                await dbContext.PreviousRecommendations.AddAsync(new PreviousRecommendations
+                {
+                    VisitDate = reportDto.PreviousRecommendations.VisitDate,
+                    CompletionStatusID = reportDto.PreviousRecommendations.CompletionStatusID,
+                    Comments = reportDto.PreviousRecommendations.Comments,
+                    Action = reportDto.PreviousRecommendations.Action,
+                    ReportID = _report.Id
+                });
+            }
+            if (reportDto?.Questaions != null)
+            {
+                foreach (var questaion in reportDto.Questaions)
+                {
+                    await dbContext.Questaions.AddAsync(new Questaion
+                    {
+                        CategoryID = questaion.CategoryID,
+                        SubCategoryID = questaion.SubCategoryID,
+                        EntryID = questaion.EntryID,
+                        Grade = questaion.Grade,
+                        Evidence = questaion.Evidence,
+                        EvidencePath = questaion.EvidencePath,
+                        ReportID = _report.Id,
+                    });
+                }
+            }
+
+            // Handle file attachments here
+            await dbContext.SaveChangesAsync();
+            _report.Id = _report.Id;
+            return ResponseResult<ComplianceReportDto>.Success(reportDto);
+        }
+        throw new ValidationException([new KeyValuePair<string, string>("Unauthoried User", "Unauthoried User")]);
+    }
 
