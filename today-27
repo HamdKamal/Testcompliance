@@ -1,69 +1,103 @@
+public async Task<ResponseResult<ComplianceReportDto>> GetComplianceReport(Guid? id)
 {
-  "ReportTypeID": 1,
-  "ReportNumber": "CR-2025-0012",
-  "VisitTypeID": 2,
-  "LicenseID": 345,
-  "FacilityOrLine": "Main Production Line",
-  "Activity": "Water Treatment",
-  "SiteName": "Riyadh Water Facility",
-  "InspectionScope": "Full compliance check",
-  "LocationID": 101,
-  "LicenseNumber": "LIC-2023-9988",
-  "CommercialOperationDate": "2022-06-01T00:00:00",
-  "LicenseIssueDate": "2021-12-15T00:00:00",
-  "VisitDate": "2025-07-28T00:00:00",
-  "Recommendation": "Continue operations with minor corrections",
-  "Notes": "Follow-up visit required after 90 days",
+    var report = await dbContext.ComplianceReports
+                .Include(r => r.Auditors)
+                .Include(r => r.Participants)
+                .Include(r => r.Questaions)
+                .Include(r => r.PreviousRecommendations)
+                .FirstOrDefaultAsync(a => a.Id == id) 
+                ?? 
+                throw new BadRequestException("report not found");
 
-  "Auditors": [
+    ComplianceReportDto complianceReportDto = new()
     {
-      "Name": "Eng. Ahmed Alshammari"
-    },
+        Id = report.Id,
+        ReportTypeID = report.ReportTypeID,
+        ReportNumber = report.ReportNumber,
+        VisitTypeID = report.VisitTypeID,
+        LicenseID = report.LicenseID,
+        FacilityOrLine = report.FacilityOrLine,
+        Activity = report.Activity,
+        SiteName = report.SiteName,
+        InspectionScope = report.InspectionScope,
+        LocationID = report.LocationID,
+        LicenseNumber = report.LicenseNumber,
+        CommercialOperationDate = report.CommercialOperationDate,
+        LicenseIssueDate = report.LicenseIssueDate,
+        VisitDate = report.VisitDate,
+        Recommendation = report.Recommendation,
+        Notes = report.Notes,
+        CreatedByID = report.CreatedByID,
+        CreatedOn = report.CreatedOn,
+        ComplianceDetailId = report.ComplianceDetailId
+    };
+    // Add nested entities
+    if (report?.Auditors != null)
     {
-      "Name": "Dr. Fatima Alzahrani"
+        foreach (var audit in report.Auditors)
+        {
+            complianceReportDto?.Auditors?.Add(new AuditorsDto
+            {
+                Id = audit.ID,
+                Name = audit.Name ?? "",
+            });
+        }
     }
-  ],
-
-  "Participants": [
+    if (report?.Participants != null)
     {
-      "Name": "Mohammed Alqahtani",
-      "Department": "Operations",
-      "Position": "Supervisor",
-      "Phone": "+966501234567",
-      "Email": "m.alqahtani@facility.com"
-    },
-    {
-      "Name": "Sara Almalki",
-      "Department": "Compliance",
-      "Position": "Specialist",
-      "Phone": "+966567891234",
-      "Email": "s.almalki@facility.com"
+        foreach (var participant in report.Participants)
+        {
+            complianceReportDto?.Participants?.Add(new LicenseParticipantDto
+            {
+                Name = participant.Name,
+                Department = participant.Department,
+                Position = participant.Position,
+                Phone = participant.Phone,
+                Email = participant.Email,
+            });
+        }
     }
-  ],
-
-  "PreviousRecommendations": {
-    "VisitDate": "2024-12-10T00:00:00",
-    "CompletionStatusID": 2,
-    "Comments": "All issues resolved except minor documentation",
-    "Action": "Finalize and close report"
-  },
-
-  "Questaions": [
+    if (report?.PreviousRecommendations != null)
     {
-      "CategoryID": 10,
-      "SubCategoryID": 1001,
-      "EntryID": 2001,
-      "Grade": "أخضر",
-      "Evidence": "تم توفير العقود والاتفاقيات المطلوبة",
-      "EvidencePath": "/uploads/evidence/contract123.pdf"
-    },
-    {
-      "CategoryID": 11,
-      "SubCategoryID": 1002,
-      "EntryID": 2002,
-      "Grade": "أصفر",
-      "Evidence": "نواقص في بعض البيانات المالية",
-      "EvidencePath": "/uploads/evidence/financial_missing.pdf"
+        complianceReportDto.PreviousRecommendations = new PreviousRecommendationsDto
+        {
+            VisitDate = report.PreviousRecommendations.VisitDate,
+            CompletionStatusID = report.PreviousRecommendations.CompletionStatusID,
+            Comments = report.PreviousRecommendations.Comments,
+            Action = report.PreviousRecommendations.Action,
+            ReportID = report.Id
+        };
     }
-  ]
+    if (report?.Questaions != null)
+    {
+        foreach (var questaion in report.Questaions)
+        {
+            complianceReportDto?.Questaions?.Add(new QuestaionDto
+            {
+                CategoryID = questaion.CategoryID,
+                CategoryName = questaion.CategoryName,
+                SubCategoryID = questaion.SubCategoryID,
+                SubCategoryName = questaion.SubCategoryName,
+                EntryID = questaion.EntryID,
+                EntryName = questaion.EntryName,
+
+                Grade = questaion.Grade,
+                Evidence = questaion.Evidence,
+                EvidencePath = questaion.EvidencePath,
+                ReportID = report.Id,
+            });
+        }
+    }
+    var attachments = await dbContext.Attachments.Where(s => s.EntityId == report.Id && s.AttachmentTypeId == (long)AttachmentTypeEnum.ReportAttachment && (s.IsDeleted == false || s.IsDeleted == null)).ToListAsync();
+    complianceReportDto.AttachmentsList = attachments.Select(s => new AttachmentDto()
+    {
+        AttachmentGuid = s.AttachmentGuid,
+        AttachmentId = s.Id,
+        AttachmentName = s.AttachmentName,
+        AttachmentType = (AttachmentTypeEnum)s.AttachmentTypeId,
+        EntityId = s.EntityId,
+        EntityName = s.EntityName
+    }).ToList();
+
+    return ResponseResult<ComplianceReportDto>.Success(complianceReportDto);
 }
