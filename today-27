@@ -1,116 +1,27 @@
-public async Task<ResponseResult<ComplianceReportDto>> GetComplianceReport(Guid? id)
-{
-    var report = await dbContext.ComplianceReports
-                .Include(r => r.Auditors)
-                .Include(r => r.Participants)
-                .Include(r => r.Questaions)
-                .Include(r => r.PreviousRecommendations)
-                .FirstOrDefaultAsync(a => a.Id == id) 
-                ?? 
-                throw new BadRequestException("report not found");
-
-    ComplianceReportDto complianceReportDto = new()
-    {
-        Id = report.Id,
-        ReportTypeID = report.ReportTypeID,
-        ReportNumber = report.ReportNumber,
-        VisitTypeID = report.VisitTypeID,
-        LicenseID = report.LicenseID,
-        FacilityOrLine = report.FacilityOrLine,
-        Activity = report.Activity,
-        SiteName = report.SiteName,
-        InspectionScope = report.InspectionScope,
-        LocationID = report.LocationID,
-        LicenseNumber = report.LicenseNumber,
-        CommercialOperationDate = report.CommercialOperationDate,
-        LicenseIssueDate = report.LicenseIssueDate,
-        VisitDate = report.VisitDate,
-        Recommendation = report.Recommendation,
-        Notes = report.Notes,
-        CreatedByID = report.CreatedByID,
-        CreatedOn = report.CreatedOn,
-        ComplianceDetailId = report.ComplianceDetailId
-    };
-    // Add nested entities
-    if (report?.Auditors != null)
-    {
-        foreach (var audit in report.Auditors)
-        {
-            complianceReportDto?.Auditors?.Add(new AuditorsDto
-            {
-                Id = audit.ID,
-                Name = audit.Name ?? "",
-            });
-        }
-    }
-    if (report?.Participants != null)
-    {
-        foreach (var participant in report.Participants)
-        {
-            complianceReportDto?.Participants?.Add(new LicenseParticipantDto
-            {
-                Name = participant.Name,
-                Department = participant.Department,
-                Position = participant.Position,
-                Phone = participant.Phone,
-                Email = participant.Email,
-            });
-        }
-    }
-    if (report?.PreviousRecommendations != null)
-    {
-        complianceReportDto.PreviousRecommendations = new PreviousRecommendationsDto
-        {
-            VisitDate = report.PreviousRecommendations.VisitDate,
-            CompletionStatusID = report.PreviousRecommendations.CompletionStatusID,
-            Comments = report.PreviousRecommendations.Comments,
-            Action = report.PreviousRecommendations.Action,
-            ReportID = report.Id
-        };
-    }
-    if (report?.Questaions != null)
-    {
-        foreach (var questaion in report.Questaions)
-        {
-            complianceReportDto?.Questaions?.Add(new QuestaionDto
-            {
-                CategoryID = questaion.CategoryID,
-                CategoryName = questaion.CategoryName,
-                SubCategoryID = questaion.SubCategoryID,
-                SubCategoryName = questaion.SubCategoryName,
-                EntryID = questaion.EntryID,
-                EntryName = questaion.EntryName,
-
-                Grade = questaion.Grade,
-                Evidence = questaion.Evidence,
-                EvidencePath = questaion.EvidencePath,
-                ReportID = report.Id,
-            });
-        }
-    }
-    var attachments = await dbContext.Attachments.Where(s => s.EntityId == report.Id && s.AttachmentTypeId == (long)AttachmentTypeEnum.ReportAttachment && (s.IsDeleted == false || s.IsDeleted == null)).ToListAsync();
-    complianceReportDto.AttachmentsList = attachments.Select(s => new AttachmentDto()
-    {
-        AttachmentGuid = s.AttachmentGuid,
-        AttachmentId = s.Id,
-        AttachmentName = s.AttachmentName,
-        AttachmentType = (AttachmentTypeEnum)s.AttachmentTypeId,
-        EntityId = s.EntityId,
-        EntityName = s.EntityName
-    }).ToList();
-
-    return ResponseResult<ComplianceReportDto>.Success(complianceReportDto);
-}
-
-
 public async Task<ResponseResult<List<ComplianceReportDto>>> GetAllComplianceReports()
 {
+    // Load all reports with their nested navigation properties
     var reports = await dbContext.ComplianceReports
-                .Include(r => r.Auditors)
-                .Include(r => r.Participants)
-                .Include(r => r.Questaions)
-                .Include(r => r.PreviousRecommendations)
-                .ToListAsync();
+        .Include(r => r.Auditors)
+        .Include(r => r.Participants)
+        .Include(r => r.Questaions)
+        .Include(r => r.PreviousRecommendations)
+        .ToListAsync();
+
+    var reportIds = reports.Select(r => r.Id).ToList();
+
+    // Load all attachments for those reports in one query
+    var attachments = await dbContext.Attachments
+        .Where(s =>
+            reportIds.Contains(s.EntityId) &&
+            s.AttachmentTypeId == (long)AttachmentTypeEnum.ReportAttachment &&
+            (s.IsDeleted == false || s.IsDeleted == null))
+        .ToListAsync();
+
+    // Group attachments by EntityId (which is the Report.Id)
+    var attachmentsByReportId = attachments
+        .GroupBy(a => a.EntityId)
+        .ToDictionary(g => g.Key, g => g.ToList());
 
     var reportDtos = new List<ComplianceReportDto>();
 
@@ -173,26 +84,22 @@ public async Task<ResponseResult<List<ComplianceReportDto>>> GetAllComplianceRep
             }
         };
 
-        // Fetch attachments for each report
-        var attachments = await dbContext.Attachments
-            .Where(s => s.EntityId == report.Id &&
-                        s.AttachmentTypeId == (long)AttachmentTypeEnum.ReportAttachment &&
-                        (s.IsDeleted == false || s.IsDeleted == null))
-            .ToListAsync();
-
-        complianceReportDto.AttachmentsList = attachments.Select(s => new AttachmentDto
+        // Assign attachments if found
+        if (attachmentsByReportId.TryGetValue(report.Id, out var reportAttachments))
         {
-            AttachmentGuid = s.AttachmentGuid,
-            AttachmentId = s.Id,
-            AttachmentName = s.AttachmentName,
-            AttachmentType = (AttachmentTypeEnum)s.AttachmentTypeId,
-            EntityId = s.EntityId,
-            EntityName = s.EntityName
-        }).ToList();
+            complianceReportDto.AttachmentsList = reportAttachments.Select(s => new AttachmentDto
+            {
+                AttachmentGuid = s.AttachmentGuid,
+                AttachmentId = s.Id,
+                AttachmentName = s.AttachmentName,
+                AttachmentType = (AttachmentTypeEnum)s.AttachmentTypeId,
+                EntityId = s.EntityId,
+                EntityName = s.EntityName
+            }).ToList();
+        }
 
         reportDtos.Add(complianceReportDto);
     }
 
     return ResponseResult<List<ComplianceReportDto>>.Success(reportDtos);
 }
-
