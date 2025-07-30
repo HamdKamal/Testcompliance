@@ -101,3 +101,98 @@ public async Task<ResponseResult<ComplianceReportDto>> GetComplianceReport(Guid?
 
     return ResponseResult<ComplianceReportDto>.Success(complianceReportDto);
 }
+
+
+public async Task<ResponseResult<List<ComplianceReportDto>>> GetAllComplianceReports()
+{
+    var reports = await dbContext.ComplianceReports
+                .Include(r => r.Auditors)
+                .Include(r => r.Participants)
+                .Include(r => r.Questaions)
+                .Include(r => r.PreviousRecommendations)
+                .ToListAsync();
+
+    var reportDtos = new List<ComplianceReportDto>();
+
+    foreach (var report in reports)
+    {
+        var complianceReportDto = new ComplianceReportDto
+        {
+            Id = report.Id,
+            ReportTypeID = report.ReportTypeID,
+            ReportNumber = report.ReportNumber,
+            VisitTypeID = report.VisitTypeID,
+            LicenseID = report.LicenseID,
+            FacilityOrLine = report.FacilityOrLine,
+            Activity = report.Activity,
+            SiteName = report.SiteName,
+            InspectionScope = report.InspectionScope,
+            LocationID = report.LocationID,
+            LicenseNumber = report.LicenseNumber,
+            CommercialOperationDate = report.CommercialOperationDate,
+            LicenseIssueDate = report.LicenseIssueDate,
+            VisitDate = report.VisitDate,
+            Recommendation = report.Recommendation,
+            Notes = report.Notes,
+            CreatedByID = report.CreatedByID,
+            CreatedOn = report.CreatedOn,
+            ComplianceDetailId = report.ComplianceDetailId,
+            Auditors = report.Auditors?.Select(a => new AuditorsDto
+            {
+                Id = a.ID,
+                Name = a.Name ?? ""
+            }).ToList(),
+            Participants = report.Participants?.Select(p => new LicenseParticipantDto
+            {
+                Name = p.Name,
+                Department = p.Department,
+                Position = p.Position,
+                Phone = p.Phone,
+                Email = p.Email,
+            }).ToList(),
+            Questaions = report.Questaions?.Select(q => new QuestaionDto
+            {
+                CategoryID = q.CategoryID,
+                CategoryName = q.CategoryName,
+                SubCategoryID = q.SubCategoryID,
+                SubCategoryName = q.SubCategoryName,
+                EntryID = q.EntryID,
+                EntryName = q.EntryName,
+                Grade = q.Grade,
+                Evidence = q.Evidence,
+                EvidencePath = q.EvidencePath,
+                ReportID = q.ReportID
+            }).ToList(),
+            PreviousRecommendations = report.PreviousRecommendations == null ? null : new PreviousRecommendationsDto
+            {
+                VisitDate = report.PreviousRecommendations.VisitDate,
+                CompletionStatusID = report.PreviousRecommendations.CompletionStatusID,
+                Comments = report.PreviousRecommendations.Comments,
+                Action = report.PreviousRecommendations.Action,
+                ReportID = report.Id
+            }
+        };
+
+        // Fetch attachments for each report
+        var attachments = await dbContext.Attachments
+            .Where(s => s.EntityId == report.Id &&
+                        s.AttachmentTypeId == (long)AttachmentTypeEnum.ReportAttachment &&
+                        (s.IsDeleted == false || s.IsDeleted == null))
+            .ToListAsync();
+
+        complianceReportDto.AttachmentsList = attachments.Select(s => new AttachmentDto
+        {
+            AttachmentGuid = s.AttachmentGuid,
+            AttachmentId = s.Id,
+            AttachmentName = s.AttachmentName,
+            AttachmentType = (AttachmentTypeEnum)s.AttachmentTypeId,
+            EntityId = s.EntityId,
+            EntityName = s.EntityName
+        }).ToList();
+
+        reportDtos.Add(complianceReportDto);
+    }
+
+    return ResponseResult<List<ComplianceReportDto>>.Success(reportDtos);
+}
+
