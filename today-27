@@ -103,3 +103,9 @@ public async Task<ResponseResult<List<ComplianceReportDto>>> GetAllComplianceRep
 
     return ResponseResult<List<ComplianceReportDto>>.Success(reportDtos);
 }
+
+
+
+The delay in server response was due to a temporary network issue, which has now been resolved.
+
+Everything should be working normally. Please let me know if you face any further issues.
