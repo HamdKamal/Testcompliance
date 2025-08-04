@@ -172,4 +172,63 @@ public class TeamShortageController : ControllerBase
 }
 
 
+CREATE VIEW [dbo].[vw_FullPrizeRequestView]
+AS
+SELECT 
+    Form.[Id] AS [رقم الطلب],
+    Form.[UserId] AS [رقم الموظف],
+    (Ad.FirstNameAr + ' ' + Ad.SecondNameAr + ' ' + Ad.LastNameAr) AS [إسم الموظف],
+    Ad.DepartmentNameAr AS [الإدارة],
+    Form.SubDepartment AS [الإدارة الفرعية],
+    Cat.Name AS [الفئة],
+    std.Name AS [حالة الطلب],
+    Form.[CreatedAt] AS [تاريخ الطلب],
+    Form.LastModifiedAt AS [آخر تعديل],
+    (Ad.FirstNameAr + ' ' + Ad.SecondNameAr + ' ' + Ad.LastNameAr) AS [أضيفت بواسطة],
+    SEC.Name AS [القسم],
+    
+    -- Attachment
+    ISNULL('https://apiext.swcc.gov.sa/prizeBE/attachs/' + Attachm.FileName, NULL) AS [رابط المرفق],
 
+    -- Answer Details
+    que.Title AS [السؤال],
+    options.Title AS [الإجابة],
+    Answer.OptionComment AS [تعليق],
+
+    -- Participant Info
+    Part.Name AS [اسم المشارك],
+    Part.JobTitle AS [المسمى الوظيفي],
+    Part.Department AS [إدارة المشارك],
+    Part.SubDepartment AS [الإدارة الفرعية للمشارك],
+    Part.MobileNumber AS [رقم الجوال],
+    Part.Email AS [البريد الإلكتروني]
+
+FROM [dbo].[FormSubmissions] AS Form
+
+-- Employee Info
+LEFT JOIN [SwccShared].[dbo].[VEmployeeRecordAll] AS Ad 
+    ON Form.UserId = Ad.UID
+
+-- Status, Section, Category
+LEFT JOIN [dbo].[Statuses] AS std ON Form.StatusId = std.Id
+LEFT JOIN [dbo].[FormSections] AS SEC ON Form.LastSubmittedSectionId = SEC.Id
+LEFT JOIN [dbo].[Categories] AS Cat ON Form.CategoryId = Cat.Id
+
+-- Attachments
+LEFT JOIN [dbo].[SubmittedAttachments] AS Attachm 
+    ON Form.Id = Attachm.SubmissionId
+
+-- Answers
+LEFT JOIN [dbo].[SubmittedAnswers] AS Answer 
+    ON Form.Id = Answer.SubmissionId
+LEFT JOIN [dbo].[Questions] AS que 
+    ON Answer.QuestionId = que.Id
+LEFT JOIN [dbo].[Options] AS options 
+    ON Answer.OptionId = options.Id
+
+-- Participants
+LEFT JOIN [dbo].[Participants] AS Part 
+    ON Form.Id = Part.SubmissionId
+
+WHERE Form.IsSubmitted = 1
+  AND Form.UserId NOT IN ('u983032', 'u983027', 'u983495');
