@@ -1,38 +1,471 @@
-public async Task<CorrectiveActionPlanDto?> GetPlanWithAttachmentsAsync(Guid planId)
-{
-    var plan = await _context.CorrectiveActionPlans
-        .Include(p => p.Report)
-        .Include(p => p.Attachments) // Assuming a navigation property to attachments exists
-        .FirstOrDefaultAsync(p => p.Id == planId);
+USE [PrizeDBtest]
+GO
+/****** Object:  Table [dbo].[Categories]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Categories](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](max) NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+ CONSTRAINT [PK_Categories] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Options]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Options](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Title] [nvarchar](max) NOT NULL,
+	[HasComment] [bit] NOT NULL,
+	[IsCommentRequired] [bit] NOT NULL,
+	[CommentLabel] [nvarchar](max) NULL,
+	[CommentPlaceholder] [nvarchar](max) NULL,
+	[HasAttachment] [bit] NOT NULL,
+	[IsAttachmentRequired] [bit] NOT NULL,
+	[AttachmentLabel] [nvarchar](max) NULL,
+	[AttachmentPlaceholder] [nvarchar](max) NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+ CONSTRAINT [PK_Options] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Statuses]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Statuses](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](max) NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+ CONSTRAINT [PK_Statuses] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[FormSections]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[FormSections](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](max) NOT NULL,
+	[CategoryId] [int] NOT NULL,
+	[OrderIndex] [int] NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+ CONSTRAINT [PK_FormSections] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[FormSubmissions]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[FormSubmissions](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[UserId] [nvarchar](max) NOT NULL,
+	[DepartmentId] [nvarchar](max) NULL,
+	[CategoryId] [int] NOT NULL,
+	[StatusId] [int] NOT NULL,
+	[LastSubmittedSectionId] [int] NULL,
+	[IsSubmitted] [bit] NOT NULL,
+	[SubmittedAt] [datetime2](7) NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+	[SubDepartment] [nvarchar](max) NULL,
+ CONSTRAINT [PK_FormSubmissions] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Questions]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Questions](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Title] [nvarchar](max) NOT NULL,
+	[QuestionPlaceholder] [nvarchar](max) NULL,
+	[AnswerPlaceholder] [nvarchar](max) NULL,
+	[QuestionTypeId] [int] NOT NULL,
+	[IsRequired] [bit] NOT NULL,
+	[FormSubSectionId] [int] NOT NULL,
+	[OrderIndex] [int] NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+ CONSTRAINT [PK_Questions] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[SubmittedAnswers]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SubmittedAnswers](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[SubmissionId] [int] NOT NULL,
+	[QuestionId] [int] NULL,
+	[OptionId] [int] NULL,
+	[OptionComment] [nvarchar](max) NULL,
+	[Answer] [nvarchar](max) NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+	[SubSectionId] [int] NULL,
+ CONSTRAINT [PK_SubmittedAnswers] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[SubmittedAttachments]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[SubmittedAttachments](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[FileName] [nvarchar](max) NOT NULL,
+	[FilePath] [nvarchar](max) NOT NULL,
+	[SubmissionId] [int] NOT NULL,
+	[SubSectionId] [int] NULL,
+	[QuestionId] [int] NULL,
+	[OptionId] [int] NULL,
+	[AttachmentTypeId] [int] NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+ CONSTRAINT [PK_SubmittedAttachments] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  View [dbo].[GetallPrizeRequest]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
 
-    if (plan == null) return null;
+CREATE view [dbo].[GetallPrizeRequest] 
+as
+SELECT 
+       Form.[Id] as 'رقم الطلب' 
+      ,Form.[UserId] as 'رقم الموظف' 
+      ,(Ad.FirstNameAr + ' ' + Ad.SecondNameAr + ' ' + Ad.LastNameAr) as 'إسم الموظف ' 
+      ,( Ad.DepartmentNameEn) as 'إسم الإدارة' 
+      ,Cat.Name as 'الفئة' 
+      ,std.Name as 'حالة الطلب' 
+      ,Form.[CreatedAt]  as 'تاريخ الطلب' 
+      ,(Ad.FirstNameAr + ' ' + Ad.SecondNameAr + ' ' + Ad.LastNameAr)  as 'إضيفت بواسطة ' 
+      ,Form.LastModifiedAt as 'أخر تعديل ' 
+	  , ('https://apiext.swcc.gov.sa/prizeBE/attachs/' + Attachm.FileName) as 'رابط المرفق  '  
+      ,[SubDepartment] as 'الإدارة الفرعية' 
+	  ,que.Title as 'السؤال' 
+	  ,options.Title as 'الإجابة' 
+	  ,Answer.OptionComment as 'تعليق' 
 
-    return new CorrectiveActionPlanDto
-    {
-        ReportId = plan.ReportId,
-        Report = plan.Report,
-        PlanDetails = plan.PlanDetails,
-        Deadline = plan.Deadline,
-        FileList = plan.Attachments?.Select(a => new AttachmentDto
-        {
-            Id = a.Id,
-            FileName = a.FileName,
-            Url = a.Url
-        }).ToList()
-    };
-}
+  FROM [PrizeDBtest].[dbo].[FormSubmissions]  Form
 
-public async Task<CorrectiveActionPlanDto?> GetPlanByIdAsync(Guid planId)
-{
-    return await _planRepository.GetPlanWithAttachmentsAsync(planId);
-}
+  left join [SwccShared].dbo.VEmployeeRecordAll Ad on Form.UserId = Ad.UID
+  left join [PrizeDBtest].[dbo].[Statuses] std on Form.StatusId = std.Id
+  left join [PrizeDBtest].[dbo].FormSections SEC on Form.LastSubmittedSectionId = SEC.Id
+  left join [PrizeDBtest].[dbo].[Categories] Cat on Form.CategoryId = Cat.Id 
+  left join [PrizeDBtest].[dbo].[SubmittedAttachments] Attachm on Form.Id = Attachm.SubmissionId
 
-[HttpGet("{planId}")]
-public async Task<IActionResult> GetPlanById(Guid planId)
-{
-    var result = await _planService.GetPlanByIdAsync(planId);
-    if (result == null)
-        return NotFound("Plan not found");
+  left join [PrizeDBtest].[dbo].SubmittedAnswers Answer on Form.Id = Answer.SubmissionId
+  left join [PrizeDBtest].[dbo].Questions que on Answer.QuestionId = que.Id
+  left join [PrizeDBtest].[dbo].Options options on Answer.OptionId = options.Id
 
-    return Ok(result);
-}
+  where Form.IsSubmitted = 1 and Form.UserId not in ('u983032','u983027','u983495')
+  --order by  Form.[Id] 
+GO
+/****** Object:  Table [dbo].[__EFMigrationsHistory]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[__EFMigrationsHistory](
+	[MigrationId] [nvarchar](150) NOT NULL,
+	[ProductVersion] [nvarchar](32) NOT NULL,
+ CONSTRAINT [PK___EFMigrationsHistory] PRIMARY KEY CLUSTERED 
+(
+	[MigrationId] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[AttachmentTypes]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[AttachmentTypes](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](max) NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+ CONSTRAINT [PK_AttachmentTypes] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[FormSubSections]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[FormSubSections](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](max) NOT NULL,
+	[FormSectionId] [int] NOT NULL,
+	[HasAttachment] [bit] NOT NULL,
+	[IsAttachmentRequired] [bit] NOT NULL,
+	[AttachmentLabel] [nvarchar](max) NULL,
+	[AttachmentPlaceholder] [nvarchar](max) NULL,
+	[OrderIndex] [int] NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+	[CommentLabel] [nvarchar](max) NULL,
+	[CommentPlaceholder] [nvarchar](max) NULL,
+	[HasComment] [bit] NOT NULL,
+	[IsCommentRequired] [bit] NOT NULL,
+ CONSTRAINT [PK_FormSubSections] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[Participants]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[Participants](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](max) NOT NULL,
+	[JobTitle] [nvarchar](max) NOT NULL,
+	[MobileNumber] [nvarchar](max) NULL,
+	[Email] [nvarchar](max) NULL,
+	[Department] [nvarchar](max) NOT NULL,
+	[SubmissionId] [int] NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+	[SubDepartment] [nvarchar](max) NULL,
+ CONSTRAINT [PK_Participants] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[QuestionOptions]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[QuestionOptions](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[QuestionId] [int] NOT NULL,
+	[OptionId] [int] NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+ CONSTRAINT [PK_QuestionOptions] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+/****** Object:  Table [dbo].[QuestionTypes]    Script Date: 8/4/2025 11:46:26 AM ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+CREATE TABLE [dbo].[QuestionTypes](
+	[Id] [int] IDENTITY(1,1) NOT NULL,
+	[Name] [nvarchar](max) NOT NULL,
+	[isActive] [bit] NOT NULL,
+	[isDeleted] [bit] NOT NULL,
+	[CreatedAt] [datetime2](7) NOT NULL,
+	[LastModifiedAt] [datetime2](7) NOT NULL,
+	[CreatedBy] [nvarchar](max) NOT NULL,
+	[LastModifiedBy] [nvarchar](max) NOT NULL,
+ CONSTRAINT [PK_QuestionTypes] PRIMARY KEY CLUSTERED 
+(
+	[Id] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY] TEXTIMAGE_ON [PRIMARY]
+GO
+ALTER TABLE [dbo].[FormSubSections] ADD  DEFAULT (CONVERT([bit],(0))) FOR [HasComment]
+GO
+ALTER TABLE [dbo].[FormSubSections] ADD  DEFAULT (CONVERT([bit],(0))) FOR [IsCommentRequired]
+GO
+ALTER TABLE [dbo].[FormSections]  WITH CHECK ADD  CONSTRAINT [FK_FormSections_Categories_CategoryId] FOREIGN KEY([CategoryId])
+REFERENCES [dbo].[Categories] ([Id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[FormSections] CHECK CONSTRAINT [FK_FormSections_Categories_CategoryId]
+GO
+ALTER TABLE [dbo].[FormSubmissions]  WITH CHECK ADD  CONSTRAINT [FK_FormSubmissions_Categories_CategoryId] FOREIGN KEY([CategoryId])
+REFERENCES [dbo].[Categories] ([Id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[FormSubmissions] CHECK CONSTRAINT [FK_FormSubmissions_Categories_CategoryId]
+GO
+ALTER TABLE [dbo].[FormSubmissions]  WITH CHECK ADD  CONSTRAINT [FK_FormSubmissions_FormSections_LastSubmittedSectionId] FOREIGN KEY([LastSubmittedSectionId])
+REFERENCES [dbo].[FormSections] ([Id])
+GO
+ALTER TABLE [dbo].[FormSubmissions] CHECK CONSTRAINT [FK_FormSubmissions_FormSections_LastSubmittedSectionId]
+GO
+ALTER TABLE [dbo].[FormSubmissions]  WITH CHECK ADD  CONSTRAINT [FK_FormSubmissions_Statuses_StatusId] FOREIGN KEY([StatusId])
+REFERENCES [dbo].[Statuses] ([Id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[FormSubmissions] CHECK CONSTRAINT [FK_FormSubmissions_Statuses_StatusId]
+GO
+ALTER TABLE [dbo].[FormSubSections]  WITH CHECK ADD  CONSTRAINT [FK_FormSubSections_FormSections_FormSectionId] FOREIGN KEY([FormSectionId])
+REFERENCES [dbo].[FormSections] ([Id])
+GO
+ALTER TABLE [dbo].[FormSubSections] CHECK CONSTRAINT [FK_FormSubSections_FormSections_FormSectionId]
+GO
+ALTER TABLE [dbo].[Participants]  WITH CHECK ADD  CONSTRAINT [FK_Participants_FormSubmissions_SubmissionId] FOREIGN KEY([SubmissionId])
+REFERENCES [dbo].[FormSubmissions] ([Id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Participants] CHECK CONSTRAINT [FK_Participants_FormSubmissions_SubmissionId]
+GO
+ALTER TABLE [dbo].[QuestionOptions]  WITH CHECK ADD  CONSTRAINT [FK_QuestionOptions_Options_OptionId] FOREIGN KEY([OptionId])
+REFERENCES [dbo].[Options] ([Id])
+GO
+ALTER TABLE [dbo].[QuestionOptions] CHECK CONSTRAINT [FK_QuestionOptions_Options_OptionId]
+GO
+ALTER TABLE [dbo].[QuestionOptions]  WITH CHECK ADD  CONSTRAINT [FK_QuestionOptions_Questions_QuestionId] FOREIGN KEY([QuestionId])
+REFERENCES [dbo].[Questions] ([Id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[QuestionOptions] CHECK CONSTRAINT [FK_QuestionOptions_Questions_QuestionId]
+GO
+ALTER TABLE [dbo].[Questions]  WITH CHECK ADD  CONSTRAINT [FK_Questions_FormSubSections_FormSubSectionId] FOREIGN KEY([FormSubSectionId])
+REFERENCES [dbo].[FormSubSections] ([Id])
+GO
+ALTER TABLE [dbo].[Questions] CHECK CONSTRAINT [FK_Questions_FormSubSections_FormSubSectionId]
+GO
+ALTER TABLE [dbo].[Questions]  WITH CHECK ADD  CONSTRAINT [FK_Questions_QuestionTypes_QuestionTypeId] FOREIGN KEY([QuestionTypeId])
+REFERENCES [dbo].[QuestionTypes] ([Id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[Questions] CHECK CONSTRAINT [FK_Questions_QuestionTypes_QuestionTypeId]
+GO
+ALTER TABLE [dbo].[SubmittedAnswers]  WITH CHECK ADD  CONSTRAINT [FK_SubmittedAnswers_FormSubmissions_SubmissionId] FOREIGN KEY([SubmissionId])
+REFERENCES [dbo].[FormSubmissions] ([Id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[SubmittedAnswers] CHECK CONSTRAINT [FK_SubmittedAnswers_FormSubmissions_SubmissionId]
+GO
+ALTER TABLE [dbo].[SubmittedAnswers]  WITH CHECK ADD  CONSTRAINT [FK_SubmittedAnswers_FormSubSections_SubSectionId] FOREIGN KEY([SubSectionId])
+REFERENCES [dbo].[FormSubSections] ([Id])
+GO
+ALTER TABLE [dbo].[SubmittedAnswers] CHECK CONSTRAINT [FK_SubmittedAnswers_FormSubSections_SubSectionId]
+GO
+ALTER TABLE [dbo].[SubmittedAnswers]  WITH CHECK ADD  CONSTRAINT [FK_SubmittedAnswers_Options_OptionId] FOREIGN KEY([OptionId])
+REFERENCES [dbo].[Options] ([Id])
+GO
+ALTER TABLE [dbo].[SubmittedAnswers] CHECK CONSTRAINT [FK_SubmittedAnswers_Options_OptionId]
+GO
+ALTER TABLE [dbo].[SubmittedAnswers]  WITH CHECK ADD  CONSTRAINT [FK_SubmittedAnswers_Questions_QuestionId] FOREIGN KEY([QuestionId])
+REFERENCES [dbo].[Questions] ([Id])
+GO
+ALTER TABLE [dbo].[SubmittedAnswers] CHECK CONSTRAINT [FK_SubmittedAnswers_Questions_QuestionId]
+GO
+ALTER TABLE [dbo].[SubmittedAttachments]  WITH CHECK ADD  CONSTRAINT [FK_SubmittedAttachments_AttachmentTypes_AttachmentTypeId] FOREIGN KEY([AttachmentTypeId])
+REFERENCES [dbo].[AttachmentTypes] ([Id])
+GO
+ALTER TABLE [dbo].[SubmittedAttachments] CHECK CONSTRAINT [FK_SubmittedAttachments_AttachmentTypes_AttachmentTypeId]
+GO
+ALTER TABLE [dbo].[SubmittedAttachments]  WITH CHECK ADD  CONSTRAINT [FK_SubmittedAttachments_FormSubmissions_SubmissionId] FOREIGN KEY([SubmissionId])
+REFERENCES [dbo].[FormSubmissions] ([Id])
+ON DELETE CASCADE
+GO
+ALTER TABLE [dbo].[SubmittedAttachments] CHECK CONSTRAINT [FK_SubmittedAttachments_FormSubmissions_SubmissionId]
+GO
+ALTER TABLE [dbo].[SubmittedAttachments]  WITH CHECK ADD  CONSTRAINT [FK_SubmittedAttachments_FormSubSections_SubSectionId] FOREIGN KEY([SubSectionId])
+REFERENCES [dbo].[FormSubSections] ([Id])
+GO
+ALTER TABLE [dbo].[SubmittedAttachments] CHECK CONSTRAINT [FK_SubmittedAttachments_FormSubSections_SubSectionId]
+GO
+ALTER TABLE [dbo].[SubmittedAttachments]  WITH CHECK ADD  CONSTRAINT [FK_SubmittedAttachments_Options_OptionId] FOREIGN KEY([OptionId])
+REFERENCES [dbo].[Options] ([Id])
+GO
+ALTER TABLE [dbo].[SubmittedAttachments] CHECK CONSTRAINT [FK_SubmittedAttachments_Options_OptionId]
+GO
+ALTER TABLE [dbo].[SubmittedAttachments]  WITH CHECK ADD  CONSTRAINT [FK_SubmittedAttachments_Questions_QuestionId] FOREIGN KEY([QuestionId])
+REFERENCES [dbo].[Questions] ([Id])
+GO
+ALTER TABLE [dbo].[SubmittedAttachments] CHECK CONSTRAINT [FK_SubmittedAttachments_Questions_QuestionId]
+GO
