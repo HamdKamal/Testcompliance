@@ -1,37 +1,38 @@
-try
+public async Task<CorrectiveActionPlanDto?> GetPlanWithAttachmentsAsync(Guid planId)
 {
-    bool isValid = _authService.ValidateToken(out string uid, out string fullName);
-    if (!isValid)
-    {
-        return new UnauthorizedObjectResult(new ApiResponse<object>
-        {
-            Success = false,
-            Message = "دخول غير مصرح به"
-        });
-    }
+    var plan = await _context.CorrectiveActionPlans
+        .Include(p => p.Report)
+        .Include(p => p.Attachments) // Assuming a navigation property to attachments exists
+        .FirstOrDefaultAsync(p => p.Id == planId);
 
-    bool deleted = await _deleteFormSubmissionHandler.HandleAsync(submissionId);
-    if (!deleted)
-    {
-        return NotFound(new ApiResponse<object>
-        {
-            Success = false,
-            Message = $"لم يتم العثور على المسودة بالمعرف: {submissionId} أو لا يمكن حذفها."
-        });
-    }
+    if (plan == null) return null;
 
-    return Ok(new ApiResponse<object>
+    return new CorrectiveActionPlanDto
     {
-        Success = true,
-        Message = "تم حذف المسودة بنجاح."
-    });
+        ReportId = plan.ReportId,
+        Report = plan.Report,
+        PlanDetails = plan.PlanDetails,
+        Deadline = plan.Deadline,
+        FileList = plan.Attachments?.Select(a => new AttachmentDto
+        {
+            Id = a.Id,
+            FileName = a.FileName,
+            Url = a.Url
+        }).ToList()
+    };
 }
-catch (Exception ex)
+
+public async Task<CorrectiveActionPlanDto?> GetPlanByIdAsync(Guid planId)
 {
-    return StatusCode(500, new ApiResponse<object>
-    {
-        Success = false,
-        Message = "حدث خطأ أثناء حذف المسودة.",
-        Error = ex.Message
-    });
+    return await _planRepository.GetPlanWithAttachmentsAsync(planId);
+}
+
+[HttpGet("{planId}")]
+public async Task<IActionResult> GetPlanById(Guid planId)
+{
+    var result = await _planService.GetPlanByIdAsync(planId);
+    if (result == null)
+        return NotFound("Plan not found");
+
+    return Ok(result);
 }
