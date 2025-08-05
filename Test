@@ -1,54 +1,237 @@
-public class ReportCategoryDto
-{
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public string? NameAr { get; set; }
-    public List<ReportSubCategoryDto> SubCategories { get; set; } = new();
-}
-
-public class ReportSubCategoryDto
-{
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public string? NameAr { get; set; }
-    public List<ReportEntryDto> Entries { get; set; } = new();
-}
-
-public class ReportEntryDto
-{
-    public int Id { get; set; }
-    public string? Name { get; set; }
-    public string? NameAr { get; set; }
-}
-
-public async Task<List<ReportCategoryDto>> GetReportStructureDto()
-{
-    var categories = await dbContext.ReportCategories
-        .Where(c => !c.IsDeleted)
-        .Include(c => c.SubCategories.Where(sc => !sc.IsDeleted))
-            .ThenInclude(sc => sc.Entries.Where(e => !e.IsDeleted))
-        .ToListAsync();
-
-    var result = categories.Select(category => new ReportCategoryDto
-    {
-        Id = category.Id,
-        Name = category.Name,
-        NameAr = category.NameAr,
-        SubCategories = category.SubCategories.Select(sub => new ReportSubCategoryDto
-        {
-            Id = sub.Id,
-            Name = sub.Name,
-            NameAr = sub.NameAr,
-            Entries = sub.Entries.Select(entry => new ReportEntryDto
+            #region Licensed Entity
+            new LookupValue()
             {
-                Id = entry.Id,
-                Name = entry.Name,
-                NameAr = entry.NameAr
-            }).ToList()
-        }).ToList()
-    }).ToList();
-
-    return result;
-}
-
-public string ReportNumber { get; set; } = $"RPT-{DateTime.Today.Year}-{DateTime.Today.Month:D2}-{new Random().Next(1000, 9999)}";
+                Id = 1,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Red Sea Joint Facilities",
+                ValueAr = "مرافق البحر الأحمر المشتركة",
+                LicenseNumber = "LIC-2025-01-0001"
+            },
+            new LookupValue()
+            {
+                Id = 2,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "NEOM",
+                ValueAr = "نيوم"
+            },
+            new LookupValue()
+            {
+                Id = 3,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "National Water Company",
+                ValueAr = "شركة المياه الوطنية"
+            },
+            new LookupValue()
+            {
+                Id = 4,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Al-Fath International Water and Electricity Works Company",
+                ValueAr = "شركة الفتح الدولية لأعمال المياه والكهرباء"
+            },
+            new LookupValue()
+            {
+                Id = 5,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Public Corporation for Potable Water Conversion",
+                ValueAr = "المؤسسة العامة لتحلية مياه الشرب"
+            },
+            new LookupValue()
+            {
+                Id = 6,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Al-Rakab Electricity Company in Jubail and Yanbu",
+                ValueAr = "شركة الركاب للكهرباء في الجبيل وينبع"
+            },
+            new LookupValue()
+            {
+                Id = 7,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Shaiba Project Company for Water Development",
+                ValueAr = "شركة مشروع شيبة لتنمية المياه"
+            },
+            new LookupValue()
+            {
+                Id = 8,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Third Sister Company",
+                ValueAr = "الشركة الشقيقة الثالثة"
+            },
+            new LookupValue()
+            {
+                Id = 9,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Rabigh Third Company",
+                ValueAr = "شركة رابغ الثالثة"
+            },
+            new LookupValue()
+            {
+                Id = 10,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Saudi Water Partnership Company",
+                ValueAr = "الشركة السعودية لشراكات المياه"
+            },
+            new LookupValue()
+            {
+                Id = 11,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Al-Alam Scientific Station Company",
+                ValueAr = "شركة محطة العلم العلمية"
+            },
+            new LookupValue()
+            {
+                Id = 12,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Jazalah Company",
+                ValueAr = "شركة جزالة"
+            },
+            new LookupValue()
+            {
+                Id = 13,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Canada",
+                ValueAr = "كندا"
+            },
+            new LookupValue()
+            {
+                Id = 14,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "SWACO",
+                ValueAr = "سواكو"
+            },
+            new LookupValue()
+            {
+                Id = 15,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Shas Contracting",
+                ValueAr = "شركة شاس للمقاولات"
+            },
+            new LookupValue()
+            {
+                Id = 16,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Shas Water Services",
+                ValueAr = "شركة شاس لخدمات المياه"
+            },
+            new LookupValue()
+            {
+                Id = 17,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Durar Absher",
+                ValueAr = "درر أبشر"
+            },
+            new LookupValue()
+            {
+                Id = 18,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Abdulaziz bin Othman bin Salma and Partners Water Company",
+                ValueAr = "شركة عبد العزيز بن عثمان بن سلمة وشركاؤه للمياه"
+            },
+            new LookupValue()
+            {
+                Id = 19,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Abdulaziz bin Othman bin Salma and Partners for Trade",
+                ValueAr = "شركة عبد العزيز بن عثمان بن سلمة وشركاؤه للتجارة"
+            },
+            new LookupValue()
+            {
+                Id = 20,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Contracting and Transport",
+                ValueAr = "المقاولات والنقل"
+            },
+            new LookupValue()
+            {
+                Id = 21,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Abdullah Mohammed Al-Saad Water Desalination Establishment",
+                ValueAr = "مؤسسة عبد الله محمد السعد لتحلية المياه"
+            },
+            new LookupValue()
+            {
+                Id = 22,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Abdulrazaq Al-Abdulkarim Ali bin Abdulrazaq Al-Abdulkarim Contracting Establishment",
+                ValueAr = "مؤسسة عبد الرزاق العبد الكريم علي بن عبد الرزاق العبد الكريم للمقاولات"      
+            },
+            new LookupValue()
+            {
+                Id = 23,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Hassan Abdullah Al-Amari",
+                ValueAr = "حسن عبد الله العماري"
+            },
+            new LookupValue()
+            {
+                Id = 24,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Yanbu International Aviation Company",
+                ValueAr = "شركة ينبع الدولية للطيران"  
+            },
+            new LookupValue()
+            {
+                Id = 25,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Water Transport and Technology Company",
+                ValueAr = "شركة نقل وتقنية المياه"
+            },
+            new LookupValue()
+            {
+                Id = 26,
+                CategoryId = 1,
+                CreatedOn = new DateTime(2025,1,1),
+                ModifiedOn = new DateTime(2025,1,1),
+                ValueEn = "Another",
+                ValueAr = "أخرى"        
+            },
+            #endregion
