@@ -1,234 +1,52 @@
-public class TeamShortage
+public class ReportCategoryDto
 {
-    public long Id { get; set; }
-
-    public long ComplianceDetailsId { get; set; }        // 🔗 Links to ComplianceDetails table
-    public ComplianceDetail ComplianceDetails { get; set; }
-
-    public DateTime VisitDate { get; set; }
-
-    public long LicensedEntityId { get; set; }
-    public string ShortageReason { get; set; }
-
-    public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
-    public string CreatedBy { get; set; }
+    public int Id { get; set; }
+    public string? Name { get; set; }
+    public string? NameAr { get; set; }
+    public List<ReportSubCategoryDto> SubCategories { get; set; } = new();
 }
 
-public DbSet<TeamShortage> TeamShortages { get; set; }
-
-protected override void OnModelCreating(ModelBuilder modelBuilder)
+public class ReportSubCategoryDto
 {
-    base.OnModelCreating(modelBuilder);
-
-    modelBuilder.Entity<TeamShortage>()
-        .HasOne(t => t.ComplianceDetails)
-        .WithMany() // If ComplianceDetails can have many shortage requests
-        .HasForeignKey(t => t.ComplianceDetailsId);
+    public int Id { get; set; }
+    public string? Name { get; set; }
+    public string? NameAr { get; set; }
+    public List<ReportEntryDto> Entries { get; set; } = new();
 }
 
-using ComplianceRequestsApp.Domain;
-
-public interface ITeamShortageRepository
+public class ReportEntryDto
 {
-    Task<TeamShortage> AddAsync(TeamShortage request);
-    Task<List<TeamShortage>> GetByComplianceDetailsIdsAsync(List<long> complianceDetailsIds);
+    public int Id { get; set; }
+    public string? Name { get; set; }
+    public string? NameAr { get; set; }
 }
 
-using ComplianceRequestsApp.Domain;
-using Microsoft.EntityFrameworkCore;
-
-public class TeamShortageRepository : ITeamShortageRepository
+public async Task<List<ReportCategoryDto>> GetReportStructureDto()
 {
-    private readonly ApplicationDbContext _context;
+    var categories = await dbContext.ReportCategories
+        .Where(c => !c.IsDeleted)
+        .Include(c => c.SubCategories.Where(sc => !sc.IsDeleted))
+            .ThenInclude(sc => sc.Entries.Where(e => !e.IsDeleted))
+        .ToListAsync();
 
-    public TeamShortageRepository(ApplicationDbContext context)
+    var result = categories.Select(category => new ReportCategoryDto
     {
-        _context = context;
-    }
-
-    public async Task<TeamShortage> AddAsync(TeamShortage request)
-    {
-        _context.TeamShortages.Add(request);
-        await _context.SaveChangesAsync();
-        return request;
-    }
-
-    public async Task<List<TeamShortage>> GetByComplianceDetailsIdsAsync(List<long> complianceDetailsIds)
-    {
-        return await _context.TeamShortages
-            .Where(t => complianceDetailsIds.Contains(t.ComplianceDetailsId))
-            .ToListAsync();
-    }
-}
-
-public class TeamShortageDto
-{
-    public long Id { get; set; }
-    public long ComplianceDetailsId { get; set; }
-    public DateTime VisitDate { get; set; }
-    public long LicensedEntityId { get; set; }
-    public string LicensedEntityName { get; set; }
-    public string ShortageReason { get; set; }
-    public DateTime CreatedOn { get; set; }
-    public string CreatedBy { get; set; }
-}
-
-public interface ITeamShortageService
-{
-    Task<TeamShortageDto> SubmitAsync(TeamShortageDto dto);
-    Task<List<TeamShortageDto>> GetByComplianceDetailsIdsAsync(List<long> complianceDetailsIds);
-}
-
-
-using ComplianceRequestsApp.Domain;
-
-public class TeamShortageService : ITeamShortageService
-{
-    private readonly ITeamShortageRepository _repository;
-    private readonly ICurrentUserService _currentUserService;
-
-    public TeamShortageService(
-        ITeamShortageRepository repository,
-        ICurrentUserService currentUserService)
-    {
-        _repository = repository;
-        _currentUserService = currentUserService;
-    }
-
-    public async Task<TeamShortageDto> SubmitAsync(TeamShortageDto dto)
-    {
-        var entity = new TeamShortage
+        Id = category.Id,
+        Name = category.Name,
+        NameAr = category.NameAr,
+        SubCategories = category.SubCategories.Select(sub => new ReportSubCategoryDto
         {
-            ComplianceDetailsId = dto.ComplianceDetailsId,
-            VisitDate = dto.VisitDate,
-            LicensedEntityId = dto.LicensedEntityId,
-            ShortageReason = dto.ShortageReason,
-            CreatedBy = _currentUserService.User.UserName
-        };
+            Id = sub.Id,
+            Name = sub.Name,
+            NameAr = sub.NameAr,
+            Entries = sub.Entries.Select(entry => new ReportEntryDto
+            {
+                Id = entry.Id,
+                Name = entry.Name,
+                NameAr = entry.NameAr
+            }).ToList()
+        }).ToList()
+    }).ToList();
 
-        var result = await _repository.AddAsync(entity);
-
-        return new TeamShortageDto
-        {
-            Id = result.Id,
-            ComplianceDetailsId = result.ComplianceDetailsId,
-            VisitDate = result.VisitDate,
-            LicensedEntityId = result.LicensedEntityId,
-            ShortageReason = result.ShortageReason,
-            CreatedOn = result.CreatedOn,
-            CreatedBy = result.CreatedBy
-        };
-    }
-
-    public async Task<List<TeamShortageDto>> GetByComplianceDetailsIdsAsync(List<long> complianceDetailsIds)
-    {
-        var items = await _repository.GetByComplianceDetailsIdsAsync(complianceDetailsIds);
-
-        return items.Select(sr => new TeamShortageDto
-        {
-            Id = sr.Id,
-            ComplianceDetailsId = sr.ComplianceDetailsId,
-            VisitDate = sr.VisitDate,
-            LicensedEntityId = sr.LicensedEntityId,
-            ShortageReason = sr.ShortageReason,
-            CreatedOn = sr.CreatedOn,
-            CreatedBy = sr.CreatedBy
-        }).ToList();
-    }
+    return result;
 }
-
-using Microsoft.AspNetCore.Mvc;
-
-[ApiController]
-[Route("api/[controller]")]
-public class TeamShortageController : ControllerBase
-{
-    private readonly ITeamShortageService _service;
-
-    public TeamShortageController(ITeamShortageService service)
-    {
-        _service = service;
-    }
-
-    /// <summary>
-    /// Submit a new team shortage request
-    /// </summary>
-    [HttpPost]
-    public async Task<IActionResult> Submit([FromBody] TeamShortageDto dto)
-    {
-        if (!ModelState.IsValid)
-            return BadRequest(ModelState);
-
-        var result = await _service.SubmitAsync(dto);
-        return Ok(new { message = "تم إرسال طلب معالجة نقص الفريق بنجاح", data = result });
-    }
-}
-
-{
-  "ComplianceDetailsId": 1,
-  "VisitDate": "2025-07-22T00:00:00",
-  "LicensedEntityId": 2,
-  "ShortageReason": "عدد المفتشين غير كافٍ"
-}
-
-
-CREATE VIEW [dbo].[vw_FullPrizeRequestView]
-AS
-SELECT 
-    Form.[Id] AS [رقم الطلب],
-    Form.[UserId] AS [رقم الموظف],
-    (Ad.FirstNameAr + ' ' + Ad.SecondNameAr + ' ' + Ad.LastNameAr) AS [إسم الموظف],
-    Ad.DepartmentNameAr AS [الإدارة],
-    Form.SubDepartment AS [الإدارة الفرعية],
-    Cat.Name AS [الفئة],
-    std.Name AS [حالة الطلب],
-    Form.[CreatedAt] AS [تاريخ الطلب],
-    Form.LastModifiedAt AS [آخر تعديل],
-    (Ad.FirstNameAr + ' ' + Ad.SecondNameAr + ' ' + Ad.LastNameAr) AS [أضيفت بواسطة],
-    SEC.Name AS [القسم],
-    
-    -- Attachment
-    ISNULL('https://apiext.swcc.gov.sa/prizeBE/attachs/' + Attachm.FileName, NULL) AS [رابط المرفق],
-
-    -- Answer Details
-    que.Title AS [السؤال],
-    options.Title AS [الإجابة],
-    Answer.OptionComment AS [تعليق],
-
-    -- Participant Info
-    Part.Name AS [اسم المشارك],
-    Part.JobTitle AS [المسمى الوظيفي],
-    Part.Department AS [إدارة المشارك],
-    Part.SubDepartment AS [الإدارة الفرعية للمشارك],
-    Part.MobileNumber AS [رقم الجوال],
-    Part.Email AS [البريد الإلكتروني]
-
-FROM [dbo].[FormSubmissions] AS Form
-
--- Employee Info
-LEFT JOIN [SwccShared].[dbo].[VEmployeeRecordAll] AS Ad 
-    ON Form.UserId = Ad.UID
-
--- Status, Section, Category
-LEFT JOIN [dbo].[Statuses] AS std ON Form.StatusId = std.Id
-LEFT JOIN [dbo].[FormSections] AS SEC ON Form.LastSubmittedSectionId = SEC.Id
-LEFT JOIN [dbo].[Categories] AS Cat ON Form.CategoryId = Cat.Id
-
--- Attachments
-LEFT JOIN [dbo].[SubmittedAttachments] AS Attachm 
-    ON Form.Id = Attachm.SubmissionId
-
--- Answers
-LEFT JOIN [dbo].[SubmittedAnswers] AS Answer 
-    ON Form.Id = Answer.SubmissionId
-LEFT JOIN [dbo].[Questions] AS que 
-    ON Answer.QuestionId = que.Id
-LEFT JOIN [dbo].[Options] AS options 
-    ON Answer.OptionId = options.Id
-
--- Participants
-LEFT JOIN [dbo].[Participants] AS Part 
-    ON Form.Id = Part.SubmissionId
-
-WHERE Form.IsSubmitted = 1
-  AND Form.UserId NOT IN ('u983032', 'u983027', 'u983495');
